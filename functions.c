@@ -23,6 +23,7 @@
 
 int server_timed_out = 1;
 
+
 // Signal handler
 void SignalHandler(int sig) {
     switch (sig) {
@@ -353,7 +354,9 @@ int FindPID() {
 // Adatok fájlba írása
 void SendViaFile(int *Values, int NumValues) {
     //  az adott felhasználó saját alapértelmezett könyvtárában !!!!!!!!!!!!!!!!!!!!!
-    /////  !!!!!!!!!!!!! int chdir(const char *path);
+    const char *home = getenv("HOME");
+    if (home == NULL) { fprintf(stderr, "Hiba a $HOME lekerdezese kozben"); exit(1); }
+    if (chdir(home) == -1) { fprintf(stderr, "Hiba az alapertelmezett konyvtarba lepes soran"); exit(1); }
 
 
 
