@@ -13,7 +13,7 @@
 
 
 int Measurement(int** Values) {
-    int size = 10;
+    int size = 900;
 
     *Values = (int*)malloc(size * sizeof(int));    // Mérések tömb lefoglalása
     if (*Values == NULL) { return -1; }

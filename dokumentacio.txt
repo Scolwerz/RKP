@@ -1,5 +1,3 @@
-# RKP
-
 A program fordításához c fordítóprogram szükséges (gcc)
 Használata: gcc -o chart main.c functions.c -fopenmp
 
