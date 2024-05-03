@@ -607,7 +607,7 @@ void ReceiveViaSocket() {
         */
 
         // Válasz küldése (int - Tömb mérete bájtban)
-        response = NumValues * sizeof(int);
+        response = NumValues * sizeof;
         bytes = sendto(s_s, &response, sizeof(int) + 1, flag, (struct sockaddr *) &client, client_size);
         if (bytes <= 0) {
             fprintf(stderr, " Hiba az valasz kuldese soran.\n");
