@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-/*
+
 int Measurement(int** Values) {
     int size = 10;
 
@@ -30,9 +30,9 @@ int Measurement(int** Values) {
     }
     return size; // Visszatér az előállított értékek számával
 }
-*/
 
 
+/*
 // Mérések előállítása
 int Measurement(int** Values) {
     // if (*Values == NULL) { return -1; }
@@ -64,7 +64,7 @@ int Measurement(int** Values) {
 
     return size; // Visszatér az előállított értékek számával
 }
-
+*/
 
 
 
@@ -127,6 +127,12 @@ void BMPcreator(int *Values, int NumValues) {
         exit(3);
     }
 
+
+
+
+
+
+
     unsigned int width = NumValues;                                  // A kép szélessége
     unsigned int height = NumValues;                                 // A kép magassága
     int NumUInts = width % 32 == 0 ? width / 32 : width / 32 + 1;    // 1 sorban lévő unsigned int-ek (x * 32  bit)
@@ -174,106 +180,83 @@ void BMPcreator(int *Values, int NumValues) {
 
 
 
-    unsigned int* UInts = (unsigned int*)malloc(NumUInts * height * sizeof(unsigned int));
-    for (int i = 0; i < NumUInts * height; i++) { UInts[i] = 0; }   // Tömb feltőltése 0-val
 
-    int value_min = height % 2 == 0 ? -(height/2)+1 : -(height/2);  // Lehetséges legkisebb érték
-    int value_max = height / 2;                                 // Lehetséges legnagyobb érték
-    int pos_y = -(value_min);                                     // Az első érték y pozíciója (0 értékű sor) (sorindex)
-    int pos_x = 0;                                              // u_int-ek oszlopindex
-    unsigned int mask = 0x80000000;                                       // u_int bitindexe (base: 10000000000000000000000000000000)
 
-    printf("\n\nwidth:%d  height:%d  NumUInts:%d  size:%d  min:%d  max:%d  y:%d  x:%d  mask:%x\n\n",
-            width, height, NumUInts, size, value_min, value_max, pos_y, pos_x, mask);
 
-    UInts[pos_y * NumUInts + pos_x / 32] |= mask;               // Első oszlop bitjének beállítása
-    /*/ ### TEST ### //
-    for (int i = NumUInts * height - 1; i >= 0; i--) {
-        print_bits(UInts[i]);
-        unsigned char* bytes = u_int_bytes_bigendian(UInts[i]);
-        printf("   -   0x%02x, 0x%02x, 0x%02x, 0x%02x\n",
-            bytes[0], bytes[1], bytes[2], bytes[3]);
-        free(bytes);
+
+
+
+
+
+
+
+    unsigned int szelesseg = NumValues;                                              // A kép szélessége
+    unsigned int magassag  = NumValues;                                              // A kép magassága
+    int sor_meret = szelesseg % 32 == 0 ? szelesseg / 32 : szelesseg / 32 + 1;       // 1 sorban lévő unsigned int-ek (x * 32  bit)
+
+    unsigned int* pixeltomb = (unsigned int*)malloc(sor_meret * magassag * sizeof(unsigned int));
+
+    for (int i = 0; i < sor_meret * magassag; i++) // Tömb feltőltése 0-val
+    {
+        pixeltomb[i] = 0;
     }
-    unsigned char* bytes = u_int_bytes_bigendian(UInts[pos_y * NumUInts + pos_x / 32]);
-    printf("\nertek: %d    x:%d   y:%d   mask:%x   uint:%d",
-    Values[pos_x], bytes[0], bytes[1], bytes[2], bytes[3], pos_x, pos_y, mask,(pos_y * NumUInts + pos_x / 32));
-    printf("   mask:"); print_bits(mask);
-    printf("\n\n--------------------------------------------------------\n\n");
-    free(bytes);
-    // ### TEST ### /*/
-    pos_x++; mask /= 2;                                // Sor- és oszlop(bit)index növelése
-    for (; pos_x < width; pos_x++, mask /= 2) {
+
+    int min_ertek;
+    if (magassag % 2 == 0)
+        min_ertek = -(magassag/2)+1;
+    else
+        min_ertek = -(magassag/2);      // Lehetséges legkisebb érték
+
+    int max_ertek = magassag / 2;                                            // Lehetséges legnagyobb érték
+    int sor = -(min_ertek);                                                // Az első érték y pozíciója (0 értékű sor) (sorindex)
+    int oszlop = 0;                                                           // u_int-ek oszlopindex
+    unsigned int mask = 0x80000000;                                          // u_int bitindexe (base: 10000000000000000000000000000000)
+
+    pixeltomb[sor * sor_meret + oszlop / 32] |= mask;               // Első oszlop bitjének beállítása
+    mask /= 2;
+    for (oszlop = 1; oszlop < szelesseg; oszlop++)
+    {
         if (mask == 0x00) { mask = 0x80000000; }      // 10000000000000000000000000000000
 
-        if (Values[pos_x] < Values[pos_x-1]) {        // Ha az előző érték kisebb, csökkentjük az oszlopindexet
-            pos_y = pos_y <= 0 ? 0 : pos_y-1;
-        }
-        else if (Values[pos_x] > Values[pos_x-1]){    // Ha az előző érték nagyobb, növeljük az oszlopindexet
-            pos_y = pos_y >= height-1 ? height-1 : pos_y+1;
-        }
-        UInts[pos_y * NumUInts + pos_x / 32] |= mask;
-
-        /*/ ### TEST ### //
-        for (int i = NumUInts * height - 1; i >= 0; i--) {
-            print_bits(UInts[i]);
-            unsigned char* bytes = u_int_bytes_bigendian(UInts[i]);
-            printf("   -   0x%02x, 0x%02x, 0x%02x, 0x%02x\n",
-                bytes[0], bytes[1], bytes[2], bytes[3]);
-            free(bytes);
-        }
-        unsigned char* bytes = u_int_bytes_bigendian(UInts[pos_y * NumUInts + pos_x / 32]);
-        printf("\nertek: %d    x:%d   y:%d   mask:%x   uint:%d",
-        Values[pos_x], bytes[0], bytes[1], bytes[2], bytes[3], pos_x, pos_y, mask,(pos_y * NumUInts + pos_x / 32));
-        printf("   mask:"); print_bits(mask);
-        printf("\n\n--------------------------------------------------------\n\n");
-        free(bytes);
-        // ### TEST ### /*/
-    }
-
-    for (int i = 0; i < NumValues * NumUInts; i++) {
-        unsigned char* bytes = u_int_bytes_bigendian(UInts[i]);
-        fprintf(file, ", 0x%02x, 0x%02x, 0x%02x, 0x%02x", bytes[0], bytes[1], bytes[2], bytes[3]);
-        free(bytes);
-    }
-
-
-
-
-    /*
-    // Pixeltömb írása a fájlba
-    int NumBits = NumUInts;
-    unsigned int buffer = 0;
-    unsigned char* buffer_bytes;
-    int current;
-    // lehetséges értékek == sorok száma
-    for (int i = area_min; i < area_max; i++) {
-        // sor hány u_intre osztható fel
-        for (int j = 0; j < NumUInts/4; j++) {
-            // u_int bitjei
-            for (int k = 0; k < 32; k++) {
-                current = j*32+k < NumValues ? Values[j*32+k] : INT32_MAX;
-                // Ha első vagy utolsó sor akkor a kilógó értékeket is megjelenítjük
-                if (i == area_min && current < i || i == area_max && current > i || current == i)
-                    buffer |= 0x01;
-                buffer << 1;
+        if (Values[oszlop] < Values[oszlop-1])    // Ha az előző érték kisebb, csökkentjük az oszlopindexet
+        {
+            if (sor <= 0)
+            {
+                sor = 0;
             }
-            buffer_bytes = u_int_bytes(buffer);
-            fprintf(file,", 0x%02x, 0x%02x, 0x%02x, 0x%02x ",buffer_bytes[3],buffer_bytes[2],buffer_bytes[1],buffer_bytes[0]);
-            free(buffer_bytes);
-            buffer = 0;
+            else
+            {
+                sor -= 1;
+            }
         }
+        else if (Values[oszlop] > Values[oszlop-1])         // Ha az előző érték nagyobb, növeljük az oszlopindexet
+        {
+            if (sor >= magassag - 1)
+            {
+                sor = magassag - 1;
+            }
+            else
+            {
+                sor += 1;
+            }
+        }
+        pixeltomb[sor * sor_meret + oszlop / 32] |= mask;
+
+        mask /= 2;
     }
-    */
+
+    unsigned char adat_bytes[4];
+    for (int i = 0; i < magassag * sor_meret; i++)
+    {
+        for (int j = 3; j >= 0; j--)
+        {
+            adat_bytes[sizeof(unsigned int) - 1 - j] = (pixeltomb[i] >> (i * 8)) & 0xFF;
+        }
+        fprintf(file, ", 0x%02x, 0x%02x, 0x%02x, 0x%02x", adat_bytes[0], adat_bytes[1], adat_bytes[2], adat_bytes[3]);
+    }
 
 
-    // Memóriaterületek felszabadítása
-    free(grey_bytes);
-    free(pink_bytes);
-    // free(orange_bytes);
-    free(size_bytes);
-    free(width_bytes);
-    free(UInts);
+    free(pixeltomb);
     // Fájl bezárása
     fclose(file);
 
@@ -284,7 +267,7 @@ void BMPcreator(int *Values, int NumValues) {
     //}
 
 
-    printf("# BMP fajl letrehozva size=%d\n",size);
+    printf("# BMP fajl letrehozva size=%d\n");
 }
 
 

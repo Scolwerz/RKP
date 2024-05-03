@@ -13,7 +13,7 @@
 // #include <netdb.h>
 // #include <sys/socket.h>
 // #include <netinet/in.h>
-// #include <arpa/inet.h>
+#include <arpa/inet.h>
 #include "functions.h"
 
 #define MAX_PATH_LEN 256            // Fájl elérési útjának eltárolására beolvasására használt string max mérete
@@ -21,26 +21,29 @@
 #define BUFSIZE 1024                // Buffer max mérete
 #define PORT_NO 3333                // Használt port
 
-int server_timed_out = 1;
+int server_timed_out = 1;           // 1 - Nem értük el a szervert, 0 - Elértük a szervert
+int s_s;                            // Socket ID (Szerver)
+
+
 
 
 // Signal handler
 void SignalHandler(int sig) {
     switch (sig) {
         case SIGINT:
+            if (!server_timed_out) { close(s_s); }
             printf("\nA folyamat befejezodik, viszlat!\n");
             exit(0);
             // break;
-        /*case SIGUSR1:
+        case SIGUSR1:
             fprintf(stderr, "\nHiba: A fajlon keresztuli kuldes szolgaltatas nem elerheto.\n");
             exit(1);
-            break;
         case SIGALARM:
             if (server_timed_out) {
                 fprintf(stderr, "\nHiba: A szerver nem valaszol.\n");
                 exit(1);
             }
-            break;*/
+            break;
     }
 }
 
@@ -75,7 +78,6 @@ int Measurement(int** Values) {
 
     return size; // Visszatér az előállított értékek számával
 }
-
 
 // Visszaadja egy unsigned int bájtjaid hexadevimális formában
 // uint8_t *bytes = (uint8_t *)&value;                    0       1        2         3
@@ -126,12 +128,12 @@ void print_bits(unsigned int num) {
 
 // Létrehozza a "chart.bmp" fájlt
 void BMPcreator(int *Values, int NumValues) {
-
     // Mindenki olvashatja de csak a tulajdonos írhatja !!!!!!!!!!!!!!!!!!!!!!!!
-
-    FILE *file = fopen("chart.bmp", "w");
-    if (file == NULL) {
-        fprintf(stderr, "Hiba: Nem sikerult letrehozni a \"chart.bmp\" fajlt.\n");
+    char* filename = "chart.bmp";   //                               // Fájlnév
+    mode_t mode = S_IRUSR | S_IWUSR /*| S_IRGRP | S_IROTH*/ | S_IRUSR >> 3 | S_IRUSR >> 6 ;             // Jogosultság
+    FILE* file = fopen(filename, "w");  // Fájl megnyitása
+    if (file == -1) {
+        fprintf(stderr, "Hiba: Nem sikerult letrehozni a %s fajlt.\n", filename);
         exit(3);
     }
 
@@ -145,24 +147,17 @@ void BMPcreator(int *Values, int NumValues) {
     int grey_g = 0x64;
     int grey_b = 0x64;
     int grey_a = 205;
-    unsigned int u_grey = pack_rgba(grey_r, grey_g, grey_b, grey_a);            // Értékek becsomagolása egy unsigned int-be
+    unsigned int u_grey = pack_rgba(grey_r, grey_g, grey_b, grey_a); // Értékek becsomagolása egy unsigned int-be
     // Pink - rgba(255, 25, 150, 0.8) #FF1996
     int pink_r = 0xFF;
     int pink_g = 0x19;
     int pink_b = 0x96;
     int pink_a = 205;
-    unsigned int u_pink = pack_rgba(pink_r, pink_g, pink_b, pink_a);            // Értékek becsomagolása egy unsigned int-be
-    // Narancs - rgba(255, 150, 0, 0.8) #FF9600
-    // int orange_r = 0xFF;
-    // int orange_g = 0x96;
-    // int orange_b = 0x00;
-    // int orange_a = 205;
-    // unsigned int u_orange = pack_rgba(orange_r, orange_g, orange_b, orange_a);  // Értékek becsomagolása egy unsigned int-be
+    unsigned int u_pink = pack_rgba(pink_r, pink_g, pink_b, pink_a); // Értékek becsomagolása egy unsigned int-be
 
     // Az unsigned int-ek bitjeinek szétszedése bájtonként
     unsigned char* grey_bytes = u_int_bytes(u_grey);
     unsigned char* pink_bytes = u_int_bytes(u_pink);
-    // unsigned char* orange_bytes = u_int_bytes(u_orange);
     unsigned char* size_bytes = u_int_bytes(size);
     unsigned char* width_bytes = u_int_bytes(width);
 
@@ -181,7 +176,6 @@ void BMPcreator(int *Values, int NumValues) {
     fprintf(file, "0x%02x, 0x%02x", pink_bytes[2], pink_bytes[3]);
 
 
-
     unsigned int* UInts = (unsigned int*)malloc(NumUInts * height * sizeof(unsigned int));
     for (int i = 0; i < NumUInts * height; i++) { UInts[i] = 0; }   // Tömb feltőltése 0-val
 
@@ -191,8 +185,8 @@ void BMPcreator(int *Values, int NumValues) {
     int pos_x = 0;                                              // u_int-ek oszlopindex
     unsigned int mask = 0x80000000;                                       // u_int bitindexe (base: 10000000000000000000000000000000)
 
-    printf("\n\nwidth:%d  height:%d  NumUInts:%d  size:%d  min:%d  max:%d  y:%d  x:%d  mask:%x\n\n",
-            width, height, NumUInts, size, value_min, value_max, pos_y, pos_x, mask);
+    // printf("\n\nwidth:%d  height:%d  NumUInts:%d  size:%d  min:%d  max:%d  y:%d  x:%d  mask:%x\n\n",
+    //         width, height, NumUInts, size, value_min, value_max, pos_y, pos_x, mask);
 
     UInts[pos_y * NumUInts + pos_x / 32] |= mask;               // Első oszlop bitjének beállítása
     /*/ ### TEST ### //
@@ -285,18 +279,13 @@ void BMPcreator(int *Values, int NumValues) {
     // Fájl bezárása
     fclose(file);
 
-    // Jogosultságok beállítása
-    // if (chmod("chart.txt", S_IRUSR | S_IWUSR /* | S_IRGRP | S_IROTH */) != 0) {
-    //    fprintf(stderr, "Hiba a jogosultsagok beallitasakor.\n");
-    //    exit(1);
-    //}
+    if (chmod(filename, mode) == -1) {
+        fprintf(stderr, "Hiba a jogosultsagok beallitasakor.\n");
+        exit(1);
+    }
 
-
-    printf("# BMP fajl letrehozva size=%d\n",size);
+    // printf("# BMP fajl letrehozva size=%d\n",size);
 }
-
-
-
 
 // ProcessID megkeresése
 int FindPID() {
@@ -359,7 +348,6 @@ void SendViaFile(int *Values, int NumValues) {
     if (chdir(home) == -1) { fprintf(stderr, "Hiba az alapertelmezett konyvtarba lepes soran"); exit(1); }
 
 
-
     // "Measurement.txt" megnyitása írásra
     FILE *file = fopen("Measurement.txt", "w");
     if (file == NULL) {
@@ -387,8 +375,11 @@ void SendViaFile(int *Values, int NumValues) {
 void ReceiveViaFile(int sig) {
     // az  adott  felhasználó  alapértelmezett  könyvtárában  lévő  ”Measurement.txt”
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // SIGUSR1 handle !!!!!!!!!!!!!!!!!!!!!!!
-    // signal(2, SignalHandler);
+
+    const char *home = getenv("HOME");
+    if (home == NULL) { fprintf(stderr, "Hiba a $HOME lekerdezese kozben"); exit(1); }
+    if (chdir(home) == -1) { fprintf(stderr, "Hiba az alapertelmezett konyvtarba lepes soran"); exit(1); }
+
 
     // "Measurement.txt" megnyitása olvasásra
     FILE *file = fopen("Measurement.txt", "r");
@@ -436,11 +427,10 @@ void ReceiveViaFile(int sig) {
 void SendViaSocket(int *Values, int NumValues) {
 
     printf("### SendViaSocket kezdete.\n");
-    /*
 
     // UDP localhost (IPv4  cím:  127.0.0.1) 3333 portját figyelő fogadó üzemmódú kommunikál.
 
-    int s;                          // Socket ID
+    int s_c;                        // Socket ID (Kliens)
     int bytes;                      // Elküldött/Fogadott bájtok
     int flag;                       // Átküldési flag
     char on;                        // sockopt beállítás
@@ -457,44 +447,40 @@ void SendViaSocket(int *Values, int NumValues) {
     server.sin_port        = htons(PORT_NO);
     server_size            = sizeof server;
 
-    // Signalkezelés
-    signal(SIGALRM, SignalHandler);
-
     // Socket létrehozása
-    s = socket(AF_INET, SOCK_DGRAM, 0 );
-    if (s < 0) {
+    s_c = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s_c < 0) {
         fprintf(stderr, "Hiba: A socketet nem sikerult letrehozni.\n");
         exit(3);
     }
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
-    setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on);
+    setsockopt(s_c, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
+    setsockopt(s_c, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on);
 
 
 
     // Adat küldése (int - Tömb mérete)
     message = NumValues;
-    bytes = sendto(s, message, sizeof(int) + 1, flag, (struct sockaddr *) &server, server_size);
+    bytes = sendto(s_c, &message, sizeof(int) + 1, flag, (struct sockaddr *) &server, server_size);
     if (bytes <= 0) {
         fprintf(stderr, " Hiba az adat kuldese soran.\n");
         exit(4);
     }
     printf ("##### %i bytes have been sent to server.\n", bytes-1);
 
-
+    // Signalkezelés
+    signal(SIGALRM, SignalHandler);
     // Időzítő indítása
     alarm(1);
 
 
    // Válasz fogadása (int)
-   bytes = recvfrom(s, response, sizeof(int), flag, (struct sockaddr *) &server, &server_size);
+   bytes = recvfrom(s_c, &response, sizeof(int), flag, (struct sockaddr *) &server, &server_size);
     if (bytes < 0) {
         fprintf(stderr, "Hiba az valasz fogadasa soran.\n");
         exit(4);
     }
     printf("##### Server's (%s:%d) acknowledgement:\n  %d\n",
            inet_ntoa(server.sin_addr), ntohs(server.sin_port), response);
-
-
     // Szerver válasz flag
     server_timed_out = 0;
 
@@ -507,7 +493,8 @@ void SendViaSocket(int *Values, int NumValues) {
 
     // Adat küldése (Values tömb elemei)
     message2 = Values;
-    bytes = sendto(s, message2, sizeof(int)*NumValues + 1, flag, (struct sockaddr *) &server, server_size);
+    message2_size = sizeof(int) * NumValues;
+    bytes = sendto(s_c, &message2, message2_size + 1, flag, (struct sockaddr *) &server, server_size);
     if (bytes <= 0) {
         fprintf(stderr, " Hiba az adat kuldese soran.\n");
         exit(4);
@@ -515,7 +502,7 @@ void SendViaSocket(int *Values, int NumValues) {
     printf ("##### %i bytes have been sent to server.\n", bytes-1);
 
    // Válasz fogadása (int)
-   bytes = recvfrom(s, response, sizeof(int), flag, (struct sockaddr *) &server, &server_size);
+   bytes = recvfrom(s_c, &response, sizeof(int), flag, (struct sockaddr *) &server, &server_size);
     if (bytes < 0) {
         fprintf(stderr, "Hiba az valasz fogadasa soran.\n");
         exit(4);
@@ -524,41 +511,33 @@ void SendViaSocket(int *Values, int NumValues) {
            inet_ntoa(server.sin_addr), ntohs(server.sin_port), response);
 
 
-
-    if (bytes != response) {
+    if (message2_size != response) {
         fprintf(stderr, "Hiba: A kuldott tomb merete bajtban es kapott ertekek elteroek.\n");
         exit(5);
     }
 
     // Socket bezárása
-    close(s);
-
-    */
+    close(s_c);
 
    printf("# SendViaSocket vege.\n");
 }
 
 
-
 // UDP SERVER
 void ReceiveViaSocket() {
-
     printf("### ReceiveViaSocket kezdete.\n");
 
-    /*
-    
-    int s;                          // Socket ID
     int bytes;                      // Elküldött/Fogadott bájtok
     int err;                        // Error code
     int flag;                       // Átküldési flag
     char on;                        // sockopt beállítás
     char buffer[MAX_LINE_LEN];      // Bufferként használt karaktertümb
     unsigned int server_size;       // sockaddr_in server hossza
-    unsigned int clien_size;        // sockaddr_in client hossza
+    unsigned int client_size;       // sockaddr_in client hossza
     struct sockaddr_in server;      // Szerver címe
     struct sockaddr_in client;      // Kliens címe
-    int NumValues;                  // Klienstől érkezett egész szám (tömb mérete)
-    int* array;                     // Klienstől érkezett tömb (int)
+    int message;                    // Klienstől érkezett egész szám (tömb mérete)
+    // int* array;                     // Klienstől érkezett tömb (int)
     int response;                   // Szerver válasza
 
     on   = 1;
@@ -572,36 +551,37 @@ void ReceiveViaSocket() {
     signal(SIGTERM, stop);
 
     // Socket létrehozása
-    s = socket(AF_INET, SOCK_DGRAM, 0);
-    if (s < 0) {
+    s_s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s_s < 0) {
         fprintf(stderr, "Hiba: A socketet nem sikerult letrehozni.\n");
         exit(3);
     }
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
-    setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on);
+    setsockopt(s_s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
+    setsockopt(s_s, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on);
 
     // Socket bindelése
-    err = bind(s, (struct sockaddr *) &server, server_size);
+    err = bind(s_s, (struct sockaddr *) &server, server_size);
     if (err < 0) {
         fprintf(stderr,"Hiba a bindeles soran.\n");
         exit(3);
     }
 
+    signal();
     // Beérkező üzenetek folyamatos figyelése
     while(1) {
         // Adat fogadása (int - Tömb mérete)
         printf("\n ##### Waiting for a message...\n");
-        bytes = recvfrom(s, NumValues, sizeof(int), flag, (struct sockaddr *) &client, &client_size);
+        bytes = recvfrom(s_s, &message, sizeof(int), flag, (struct sockaddr *) &client, &client_size);
         if (bytes <= 0) {
             fprintf(stderr, " Hiba az adat fogadasa soran.\n");
             exit(4);
         }
         printf ("##### %d bytes have been received from the client (%s:%d).\n Client's message:\n  %d",
-               bytes-1, inet_ntoa(client.sin_addr), ntohs(client.sin_port), NumValues);
+               bytes-1, inet_ntoa(client.sin_addr), ntohs(client.sin_port), message);
 
         // Válasz küldése (int - Visszaigazolás)
-        response = NumValues;
-        bytes = sendto(s, response, sizeof(int) + 1, flag, (struct sockaddr *) &client, client_size);
+        response = message;
+        bytes = sendto(s_s, &response, sizeof(int) + 1, flag, (struct sockaddr *) &client, client_size);
         if (bytes <= 0) {
             fprintf(stderr, " Hiba az valasz kuldese soran.\n");
             exit(4);
@@ -609,21 +589,19 @@ void ReceiveViaSocket() {
         printf("##### Acknowledgement have been sent to client.\n");
 
 
-
+        int NumValues = message;
         int* Values = (int*)malloc(sizeof(int) * NumValues);
-
-
+        if (Values == NULL) { fprintf(stderr, "Hiba a memoriafoglalas soran.\n"); exit(1); }
 
         // Adat fogadása (Tömb elemei)
         printf("\n ##### Waiting for a message...\n");
-        bytes = recvfrom(s, array, sizeof(int), flag, (struct sockaddr *) &client, &client_size);
+        bytes = recvfrom(s_s, Values /*array*/, NumValues * sizeof(int), flag, (struct sockaddr *) &client, &client_size);
         if (bytes <= 0) {
             fprintf(stderr, " Hiba az adat fogadasa soran.\n");
             exit(4);
         }
         printf ("##### %d bytes have been received from the client (%s:%d).\n Client's message:\n  %d",
-               bytes-1, inet_ntoa(client.sin_addr), ntohs(client.sin_port), array);
-
+               bytes-1, inet_ntoa(client.sin_addr), ntohs(client.sin_port), Values);
 
 
         for (int i = 0; i < NumValues; i++) {
@@ -633,7 +611,7 @@ void ReceiveViaSocket() {
 
         // Válasz küldése (int - Tömb mérete bájtban)
         response = sizeof(Values);
-        bytes = sendto(s, response, sizeof(int) + 1, flag, (struct sockaddr *) &client, client_size);
+        bytes = sendto(s_s, &response, sizeof(int) + 1, flag, (struct sockaddr *) &client, client_size);
         if (bytes <= 0) {
             fprintf(stderr, " Hiba az valasz kuldese soran.\n");
             exit(4);
@@ -648,14 +626,13 @@ void ReceiveViaSocket() {
         free(Values);
     }
 
-    */
 
    printf("# ReceiveViaSocket vege.\n");
 
 }
 
 void stop_server(int sig) {
-    // close(server);
+    close(s_s);
     printf("\n Szerver leallitva.\n");
     exit(0);
 }

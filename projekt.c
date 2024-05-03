@@ -6,11 +6,11 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <signal.h>
-// #include <openmp.h>
-// #include <netdb.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
-// #include <arpa/inet.h>
+#include <openmp.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "functions.h"
 
 
@@ -22,11 +22,11 @@
 
 
 void print_version_info() {
-    printf("Program verzioszama: 1.0.0\n");
-    printf("Elkeszules datuma: 2024.04.27.\n");
-    printf("Fejleszto neve: Szabolcsi Daniel\n");
+    // printf("Program verzioszama: 1.0.0\n");
+    // printf("Elkeszules datuma: 2024.04.27.\n");
+    // printf("Fejleszto neve: Szabolcsi Daniel\n");
 
-    /* Párhuzamosítás
+    // Párhuzamosítás
     #pragma omp parallel sections
     {
         #pragma omp section
@@ -36,7 +36,6 @@ void print_version_info() {
         #pragma omp section
         printf("Fejleszto neve: Szabolcsi Daniel\n");
     }
-    */
 }
 
 void print_help_info() {
@@ -606,7 +605,7 @@ void stop_server(int sig) {
 
 int main(int argc, char* argv[]) {
     // Ha nem "chart" a program neve akkor nem indul el  !!!!!!!!!!!!!!!!!!!!!!!!
-    if (strcmp(argv[0], "a.exe") != 0) { fprintf(stderr, "Hiba: A futtathato allomany neve nem megfelelo.\n"); exit(1); }
+    if (strcmp(argv[0], "./chart") != 0) { fprintf(stderr, "Hiba: A futtathato allomany neve nem megfelelo.\n"); exit(1); }
 
     // Ha nincs argumentum, vagy tul sok van
     if (argc == 1 || argc > 3) { print_help_info(); exit(2); }
@@ -638,19 +637,10 @@ int main(int argc, char* argv[]) {
     int size;               // Mérések területének mérete
 
 
-    // ################################################
-    if (mode)       // 1 - Send   |   0 - Receive
-    {
-        // Send
-        //size = Measurement(&measurements);
-        //BMPcreator(measurements, size);
-    }
-    // ################################################
-
 
     // Signal kezelés
     signal(SIGINT, SignalHandler);
-    //signal(SIGUSR1, SignalHandler);
+    signal(SIGUSR1, SignalHandler);
 
 
     /////  !!!!!!!!!!!!! int chdir(const char *path);
@@ -668,8 +658,7 @@ int main(int argc, char* argv[]) {
     }
     else {
         if (communication) {    // Receive, File
-            //signal(SIGUSR1, ReceiveViaFile);
-            while (1) { signal(SIGINT, ReceiveViaFile); }    // Végtelenített futás, várakozás signálra
+            while (1) { signal(SIGUSR1, ReceiveViaFile); }    // Végtelenített futás, várakozás signálra
         }
         else {                  // Receive, Socket
             ReceiveViaSocket();
