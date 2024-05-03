@@ -48,7 +48,7 @@ void SignalHandler(int sig) {
 
 // Mérések előállítása
 int Measurement(int** Values) {
-    if (*Values == NULL) { return -1; }
+    // if (*Values == NULL) { return -1; }
 
     srand(time(NULL));
     time_t now = time(NULL);
@@ -333,7 +333,7 @@ int FindPID() {
             }
         }
     }
-
+    printf("\npid: %d\n", pid); // #####
     closedir(dir);  // Könyvtár bezárása
     return pid;     // ProcessID visszaadása
 }

@@ -647,9 +647,6 @@ int main(int argc, char* argv[]) {
     signal(SIGUSR1, SignalHandler);
 
 
-    /////  !!!!!!!!!!!!! int chdir(const char *path);
-
-
     if (mode) {
         // Mérések elvégzése
         size = Measurement(&measurements);
@@ -662,7 +659,7 @@ int main(int argc, char* argv[]) {
     }
     else {
         if (communication) {    // Receive, File
-            while (1) { signal(SIGUSR1, ReceiveViaFile); }    // Végtelenített futás, várakozás signálra
+            while (1) { printf("Wait...\n"); signal(SIGUSR1, ReceiveViaFile); }    // Végtelenített futás, várakozás signálra
         }
         else {                  // Receive, Socket
             ReceiveViaSocket();
