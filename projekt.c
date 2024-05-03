@@ -3,14 +3,18 @@
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
+#include <strings.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <signal.h>
-#include <openmp.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <omp.h>
 #include "functions.h"
 
 

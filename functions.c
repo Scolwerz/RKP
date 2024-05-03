@@ -437,7 +437,7 @@ void SendViaSocket(int *Values, int NumValues) {
     struct sockaddr_in server;      // Szerver címe
     int message1;                   // Szervernek küldött egész szám
     int* message2;                  // Szervernek küldött tömb (int)
-    int message2_size               // Küldött tömb mérete
+    int message2_size;              // Küldött tömb mérete
     int response;                   // Szerver válasza
 
     on   = 1;
