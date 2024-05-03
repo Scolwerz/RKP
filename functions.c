@@ -8,15 +8,15 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <signal.h>
-#include<sys/stat.h>
-#include<fcntl.h>
-// #include <netdb.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include "functions.h"
 
-#define MAX_PATH_LEN 256            // Fájl elérési útjának eltárolására beolvasására használt string max mérete
+#define MAX_PATH_LEN 512            // Fájl elérési útjának eltárolására beolvasására használt string max mérete
 #define MAX_LINE_LEN 1024           // Sorok beolvasására használt string max mérete
 #define BUFSIZE 1024                // Buffer max mérete
 #define PORT_NO 3333                // Használt port
@@ -547,8 +547,7 @@ void ReceiveViaSocket() {
     server.sin_port        = htons(PORT_NO);
     server_size            = sizeof server;
     client_size            = sizeof client;
-    signal(SIGINT, stop);
-    signal(SIGTERM, stop);
+    signal(SIGINT, SignalHandler);
 
     // Socket létrehozása
     s_s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -566,7 +565,6 @@ void ReceiveViaSocket() {
         exit(3);
     }
 
-    signal();
     // Beérkező üzenetek folyamatos figyelése
     while(1) {
         // Adat fogadása (int - Tömb mérete)
@@ -600,14 +598,14 @@ void ReceiveViaSocket() {
             fprintf(stderr, " Hiba az adat fogadasa soran.\n");
             exit(4);
         }
-        printf ("##### %d bytes have been received from the client (%s:%d).\n Client's message:\n  %d",
-               bytes-1, inet_ntoa(client.sin_addr), ntohs(client.sin_port), Values);
+        printf ("##### %d bytes have been received from the client (%s:%d).\n Client's message: values",
+               bytes-1, inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 
-
+        /*
         for (int i = 0; i < NumValues; i++) {
             Values[i] = array[i];
         }
-
+        */
 
         // Válasz küldése (int - Tömb mérete bájtban)
         response = sizeof(Values);
