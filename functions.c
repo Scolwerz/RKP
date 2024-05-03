@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <omp.h>
 #include "functions.h"
 
 #define MAX_PATH_LEN 512            // Fájl elérési útjának eltárolására beolvasására használt string max mérete
@@ -23,8 +24,6 @@
 
 int server_timed_out = 1;           // 1 - Nem értük el a szervert, 0 - Elértük a szervert
 int s_s;                            // Socket ID (Szerver)
-
-
 
 
 // Signal handler
@@ -38,7 +37,7 @@ void SignalHandler(int sig) {
         case SIGUSR1:
             fprintf(stderr, "\nHiba: A fajlon keresztuli kuldes szolgaltatas nem elerheto.\n");
             exit(1);
-        case SIGALARM:
+        case SIGALRM:
             if (server_timed_out) {
                 fprintf(stderr, "\nHiba: A szerver nem valaszol.\n");
                 exit(1);
@@ -132,7 +131,7 @@ void BMPcreator(int *Values, int NumValues) {
     char* filename = "chart.bmp";   //                               // Fájlnév
     mode_t mode = S_IRUSR | S_IWUSR /*| S_IRGRP | S_IROTH*/ | S_IRUSR >> 3 | S_IRUSR >> 6 ;             // Jogosultság
     FILE* file = fopen(filename, "w");  // Fájl megnyitása
-    if (file == -1) {
+    if (file == NULL) {
         fprintf(stderr, "Hiba: Nem sikerult letrehozni a %s fajlt.\n", filename);
         exit(3);
     }
@@ -438,6 +437,7 @@ void SendViaSocket(int *Values, int NumValues) {
     struct sockaddr_in server;      // Szerver címe
     int message1;                   // Szervernek küldött egész szám
     int* message2;                  // Szervernek küldött tömb (int)
+    int message2_size               // Küldött tömb mérete
     int response;                   // Szerver válasza
 
     on   = 1;
@@ -459,8 +459,8 @@ void SendViaSocket(int *Values, int NumValues) {
 
 
     // Adat küldése (int - Tömb mérete)
-    message = NumValues;
-    bytes = sendto(s_c, &message, sizeof(int) + 1, flag, (struct sockaddr *) &server, server_size);
+    message1 = NumValues;
+    bytes = sendto(s_c, &message1, sizeof(int) + 1, flag, (struct sockaddr *) &server, server_size);
     if (bytes <= 0) {
         fprintf(stderr, " Hiba az adat kuldese soran.\n");
         exit(4);
@@ -485,7 +485,7 @@ void SendViaSocket(int *Values, int NumValues) {
     server_timed_out = 0;
 
     // Üzenet és válasz egyezésének ellenőrzése
-    if (message != response) {
+    if (message1 != response) {
         fprintf(stderr, "Hiba: A kuldott es kapott ertekek elteroek.\n");
         exit(5);
     }
