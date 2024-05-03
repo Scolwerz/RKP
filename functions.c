@@ -271,7 +271,6 @@ void BMPcreator(int *Values, int NumValues) {
     // Memóriaterületek felszabadítása
     free(grey_bytes);
     free(pink_bytes);
-    // free(orange_bytes);
     free(size_bytes);
     free(width_bytes);
     free(UInts);
@@ -283,7 +282,7 @@ void BMPcreator(int *Values, int NumValues) {
         exit(1);
     }
 
-    // printf("# BMP fajl letrehozva size=%d\n",size);
+    printf("# BMP fajl letrehozva size=%d\n",size);
 }
 
 // ProcessID megkeresése
@@ -367,7 +366,7 @@ void SendViaFile(int *Values, int NumValues) {
         exit(3);
     }
     // Ha FindPID más értékkel tér vissza, küldünk a folyamatnak SIGUSR1 szignált
-    //kill(pid, SIGUSR1);
+    kill(pid, SIGUSR1);
 }
 
 // Adatok feldolgozása fájlból
