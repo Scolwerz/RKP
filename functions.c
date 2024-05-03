@@ -569,7 +569,7 @@ void ReceiveViaSocket() {
         // Adat fogadása (int - Tömb mérete)
         printf("\n ##### Waiting for a message...\n");
         bytes = recvfrom(s_s, &message, sizeof(int), flag, (struct sockaddr *) &client, &client_size);
-        if (bytes <= 0) {
+        if (bytes < 0) {
             fprintf(stderr, " Hiba az adat fogadasa soran.\n");
             exit(4);
         }
@@ -607,7 +607,7 @@ void ReceiveViaSocket() {
         */
 
         // Válasz küldése (int - Tömb mérete bájtban)
-        response = sizeof(Values);
+        response = NumValues * sizeof(int);
         bytes = sendto(s_s, &response, sizeof(int) + 1, flag, (struct sockaddr *) &client, client_size);
         if (bytes <= 0) {
             fprintf(stderr, " Hiba az valasz kuldese soran.\n");
